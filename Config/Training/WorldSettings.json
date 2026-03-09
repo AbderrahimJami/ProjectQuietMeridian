@@ -1,0 +1,73 @@
+{
+  "World": {
+    "SchemaVersion": 1,
+    "Pawn": {
+      "TargetTag": "TrainingPawn",
+      "bApplyTransform": true,
+      "Transform": {
+        "Location": {
+          "X": 0.0,
+          "Y": 0.0,
+          "Z": 200.0
+        },
+        "Rotation": {
+          "Pitch": 0.0,
+          "Yaw": 0.0,
+          "Roll": 0.0
+        },
+        "Scale3D": {
+          "X": 1.0,
+          "Y": 1.0,
+          "Z": 1.0
+        }
+      },
+      "bApplyMaxSpeed": true,
+      "MaxSpeed": 1200.0
+    },
+    "Camera": {
+      "TargetTag": "TrainingCamera",
+      "bApplyFieldOfView": true,
+      "FieldOfView": 90.0,
+      "bApplyPostProcess": true,
+      "BloomIntensity": 0.675,
+      "AutoExposureMinBrightness": 1.0,
+      "AutoExposureMaxBrightness": 1.0
+    },
+    "Lighting": {
+      "DirectionalLightTag": "SunLight",
+      "bApplyRotation": true,
+      "Rotation": {
+        "Pitch": -45.0,
+        "Yaw": 0.0,
+        "Roll": 0.0
+      },
+      "bApplyIntensity": true,
+      "Intensity": 10.0
+    },
+    "AssetPlacements": [
+      {
+        "TargetTag": "SpawnedAsset",
+        "bSpawnIfMissing": true,
+        "ActorClassPath": "/Script/Engine.StaticMeshActor",
+        "SpawnName": "SpawnedAsset_01",
+        "Transform": {
+          "Location": {
+            "X": 400.0,
+            "Y": 0.0,
+            "Z": 100.0
+          },
+          "Rotation": {
+            "Pitch": 0.0,
+            "Yaw": 0.0,
+            "Roll": 0.0
+          },
+          "Scale3D": {
+            "X": 1.0,
+            "Y": 1.0,
+            "Z": 1.0
+          }
+        }
+      }
+    ]
+  }
+}
