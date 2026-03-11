@@ -18,17 +18,17 @@
 
 namespace QMTelemetryWorldSubsystemInternal
 {
-	FString VectorToString(const FVector& InVector)
+	FString VectorToString(const FVector &InVector)
 	{
 		return FString::Printf(TEXT("%.4f,%.4f,%.4f"), InVector.X, InVector.Y, InVector.Z);
 	}
 
-	FString RotatorToString(const FRotator& InRotator)
+	FString RotatorToString(const FRotator &InRotator)
 	{
 		return FString::Printf(TEXT("%.4f,%.4f,%.4f"), InRotator.Pitch, InRotator.Yaw, InRotator.Roll);
 	}
 
-	TSharedPtr<FJsonObject> BuildActorTransformPayload(const AActor* Actor)
+	TSharedPtr<FJsonObject> BuildActorTransformPayload(const AActor *Actor)
 	{
 		if (!Actor)
 		{
@@ -45,11 +45,11 @@ namespace QMTelemetryWorldSubsystemInternal
 	}
 }
 
-void UQMTelemetryWorldSubsystem::Initialize(FSubsystemCollectionBase& Collection)
+void UQMTelemetryWorldSubsystem::Initialize(FSubsystemCollectionBase &Collection)
 {
 	Super::Initialize(Collection);
 
-	if (UQMSettingsSubsystem* SettingsSubsystem = GetSettingsSubsystem())
+	if (UQMSettingsSubsystem *SettingsSubsystem = GetSettingsSubsystem())
 	{
 		SettingsReloadedHandle = SettingsSubsystem->OnSettingsReloaded().AddUObject(
 			this,
@@ -61,7 +61,7 @@ void UQMTelemetryWorldSubsystem::Deinitialize()
 {
 	StopTelemetry();
 
-	if (UQMSettingsSubsystem* SettingsSubsystem = GetSettingsSubsystem())
+	if (UQMSettingsSubsystem *SettingsSubsystem = GetSettingsSubsystem())
 	{
 		SettingsSubsystem->OnSettingsReloaded().Remove(SettingsReloadedHandle);
 	}
@@ -69,11 +69,11 @@ void UQMTelemetryWorldSubsystem::Deinitialize()
 	Super::Deinitialize();
 }
 
-void UQMTelemetryWorldSubsystem::OnWorldBeginPlay(UWorld& InWorld)
+void UQMTelemetryWorldSubsystem::OnWorldBeginPlay(UWorld &InWorld)
 {
 	Super::OnWorldBeginPlay(InWorld);
 
-	const UQMTrainingRuntimeDeveloperSettings* RuntimeSettings = GetDefault<UQMTrainingRuntimeDeveloperSettings>();
+	const UQMTrainingRuntimeDeveloperSettings *RuntimeSettings = GetDefault<UQMTrainingRuntimeDeveloperSettings>();
 	if (RuntimeSettings->bAutoStartTelemetryOnBeginPlay)
 	{
 		StartTelemetry();
@@ -87,14 +87,14 @@ bool UQMTelemetryWorldSubsystem::DoesSupportWorldType(EWorldType::Type WorldType
 
 void UQMTelemetryWorldSubsystem::StartTelemetry()
 {
-	UWorld* World = GetWorld();
-	UQMSettingsSubsystem* SettingsSubsystem = GetSettingsSubsystem();
+	UWorld *World = GetWorld();
+	UQMSettingsSubsystem *SettingsSubsystem = GetSettingsSubsystem();
 	if (!World || !SettingsSubsystem)
 	{
 		return;
 	}
 
-	const FQMTelemetrySettings& Settings = SettingsSubsystem->GetTelemetrySettings();
+	const FQMTelemetrySettings &Settings = SettingsSubsystem->GetTelemetrySettings();
 	StopTelemetry();
 
 	if (!Settings.bEnabled)
@@ -123,7 +123,16 @@ void UQMTelemetryWorldSubsystem::StartTelemetry()
 
 	if (!Settings.bCreateTimestampedFilePerRun && Settings.bOverwriteOnStart)
 	{
-		IFileManager::Get().Delete(*OutputAbsolutePath, false, true, true);
+		const bool bResetFile = FFileHelper::SaveStringToFile(
+			TEXT(""),
+			*OutputAbsolutePath,
+			FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM,
+			&IFileManager::Get());
+
+		if (!bResetFile)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Telemetry failed to reset output file: %s"), *OutputAbsolutePath);
+		}
 	}
 
 	ActiveTelemetrySettings = Settings;
@@ -149,7 +158,7 @@ void UQMTelemetryWorldSubsystem::StartTelemetry()
 
 void UQMTelemetryWorldSubsystem::StopTelemetry()
 {
-	UWorld* World = GetWorld();
+	UWorld *World = GetWorld();
 	if (World)
 	{
 		World->GetTimerManager().ClearTimer(CaptureTimerHandle);
@@ -168,19 +177,19 @@ void UQMTelemetryWorldSubsystem::StopTelemetry()
 
 bool UQMTelemetryWorldSubsystem::IsTelemetryRunning() const
 {
-	UWorld* World = GetWorld();
+	UWorld *World = GetWorld();
 	return World && World->GetTimerManager().IsTimerActive(CaptureTimerHandle);
 }
 
 void UQMTelemetryWorldSubsystem::CaptureSnapshot()
 {
-	UWorld* World = GetWorld();
+	UWorld *World = GetWorld();
 	if (!World)
 	{
 		return;
 	}
 
-	const FQMTelemetrySettings& Settings = ActiveTelemetrySettings;
+	const FQMTelemetrySettings &Settings = ActiveTelemetrySettings;
 	PruneInvalidTelemetryCaches();
 
 	TSharedRef<FJsonObject> RootObject = MakeShared<FJsonObject>();
@@ -196,7 +205,7 @@ void UQMTelemetryWorldSubsystem::CaptureSnapshot()
 		RootObject->SetNumberField(TEXT("sim_time_seconds"), World->GetTimeSeconds());
 	}
 
-	if (APawn* Pawn = ResolveTrackedPawn(Settings))
+	if (APawn *Pawn = ResolveTrackedPawn(Settings))
 	{
 		TSharedPtr<FJsonObject> PawnPayload = QMTelemetryWorldSubsystemInternal::BuildActorTransformPayload(Pawn);
 		if (PawnPayload.IsValid())
@@ -229,11 +238,11 @@ void UQMTelemetryWorldSubsystem::CaptureSnapshot()
 
 	JsonLine.Append(LINE_TERMINATOR);
 	if (!FFileHelper::SaveStringToFile(
-		JsonLine,
-		*OutputAbsolutePath,
-		FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM,
-		&IFileManager::Get(),
-		FILEWRITE_Append))
+			JsonLine,
+			*OutputAbsolutePath,
+			FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM,
+			&IFileManager::Get(),
+			FILEWRITE_Append))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Telemetry write failed: %s"), *OutputAbsolutePath);
 	}
@@ -247,7 +256,7 @@ void UQMTelemetryWorldSubsystem::HandleSettingsReloaded()
 	}
 }
 
-void UQMTelemetryWorldSubsystem::AppendTrackedActors(const TSharedRef<FJsonObject>& RootObject, const FQMTelemetrySettings& Settings) const
+void UQMTelemetryWorldSubsystem::AppendTrackedActors(const TSharedRef<FJsonObject> &RootObject, const FQMTelemetrySettings &Settings) const
 {
 	if (Settings.TrackedActorTags.IsEmpty())
 	{
@@ -255,24 +264,24 @@ void UQMTelemetryWorldSubsystem::AppendTrackedActors(const TSharedRef<FJsonObjec
 	}
 
 	TArray<TSharedPtr<FJsonValue>> TrackedActors;
-	TSet<const AActor*> SeenActors;
+	TSet<const AActor *> SeenActors;
 
-	for (const FName& Tag : Settings.TrackedActorTags)
+	for (const FName &Tag : Settings.TrackedActorTags)
 	{
 		if (Tag.IsNone())
 		{
 			continue;
 		}
 
-		const TArray<TWeakObjectPtr<AActor>>* CachedActors = CachedTrackedActorsByTag.Find(Tag);
+		const TArray<TWeakObjectPtr<AActor>> *CachedActors = CachedTrackedActorsByTag.Find(Tag);
 		if (!CachedActors)
 		{
 			continue;
 		}
 
-		for (const TWeakObjectPtr<AActor>& WeakActor : *CachedActors)
+		for (const TWeakObjectPtr<AActor> &WeakActor : *CachedActors)
 		{
-			const AActor* Actor = WeakActor.Get();
+			const AActor *Actor = WeakActor.Get();
 			if (!Actor || SeenActors.Contains(Actor) || !Actor->Tags.Contains(Tag))
 			{
 				continue;
@@ -301,9 +310,9 @@ void UQMTelemetryWorldSubsystem::AppendTelemetryProviders(TSharedRef<FJsonObject
 {
 	TArray<TSharedPtr<FJsonValue>> ProviderPayloads;
 
-	for (const TWeakObjectPtr<AActor>& WeakActor : CachedProviderActors)
+	for (const TWeakObjectPtr<AActor> &WeakActor : CachedProviderActors)
 	{
-		AActor* Actor = WeakActor.Get();
+		AActor *Actor = WeakActor.Get();
 		if (!Actor)
 		{
 			continue;
@@ -311,7 +320,7 @@ void UQMTelemetryWorldSubsystem::AppendTelemetryProviders(TSharedRef<FJsonObject
 
 		if (Actor->GetClass()->ImplementsInterface(UQMTelemetryProvider::StaticClass()))
 		{
-			if (IQMTelemetryProvider* Provider = Cast<IQMTelemetryProvider>(Actor))
+			if (IQMTelemetryProvider *Provider = Cast<IQMTelemetryProvider>(Actor))
 			{
 				TSharedRef<FJsonObject> Payload = MakeShared<FJsonObject>();
 				Payload->SetStringField(TEXT("source_type"), TEXT("actor"));
@@ -320,19 +329,18 @@ void UQMTelemetryWorldSubsystem::AppendTelemetryProviders(TSharedRef<FJsonObject
 				ProviderPayloads.Add(MakeShared<FJsonValueObject>(Payload));
 			}
 		}
-
 	}
 
-	for (const TWeakObjectPtr<UActorComponent>& WeakComponent : CachedProviderComponents)
+	for (const TWeakObjectPtr<UActorComponent> &WeakComponent : CachedProviderComponents)
 	{
-		UActorComponent* Component = WeakComponent.Get();
+		UActorComponent *Component = WeakComponent.Get();
 		if (!Component || !Component->GetClass()->ImplementsInterface(UQMTelemetryProvider::StaticClass()))
 		{
 			continue;
 		}
 
-		AActor* Owner = Component->GetOwner();
-		if (IQMTelemetryProvider* Provider = Cast<IQMTelemetryProvider>(Component))
+		AActor *Owner = Component->GetOwner();
+		if (IQMTelemetryProvider *Provider = Cast<IQMTelemetryProvider>(Component))
 		{
 			TSharedRef<FJsonObject> Payload = MakeShared<FJsonObject>();
 			Payload->SetStringField(TEXT("source_type"), TEXT("component"));
@@ -349,9 +357,9 @@ void UQMTelemetryWorldSubsystem::AppendTelemetryProviders(TSharedRef<FJsonObject
 	}
 }
 
-APawn* UQMTelemetryWorldSubsystem::ResolveTrackedPawn(const FQMTelemetrySettings& Settings) const
+APawn *UQMTelemetryWorldSubsystem::ResolveTrackedPawn(const FQMTelemetrySettings &Settings) const
 {
-	UWorld* World = GetWorld();
+	UWorld *World = GetWorld();
 	if (!World)
 	{
 		return nullptr;
@@ -362,7 +370,7 @@ APawn* UQMTelemetryWorldSubsystem::ResolveTrackedPawn(const FQMTelemetrySettings
 		return CachedTrackedPawn.Get();
 	}
 
-	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(World, 0);
+	APawn *PlayerPawn = UGameplayStatics::GetPlayerPawn(World, 0);
 	if (!PlayerPawn)
 	{
 		return nullptr;
@@ -376,7 +384,7 @@ APawn* UQMTelemetryWorldSubsystem::ResolveTrackedPawn(const FQMTelemetrySettings
 	return nullptr;
 }
 
-FString UQMTelemetryWorldSubsystem::ResolveTelemetryOutputPath(const FQMTelemetrySettings& Settings) const
+FString UQMTelemetryWorldSubsystem::ResolveTelemetryOutputPath(const FQMTelemetrySettings &Settings) const
 {
 	if (Settings.OutputRelativePath.IsEmpty())
 	{
@@ -391,7 +399,7 @@ FString UQMTelemetryWorldSubsystem::ResolveTelemetryOutputPath(const FQMTelemetr
 	return FPaths::ConvertRelativePathToFull(Settings.OutputRelativePath);
 }
 
-FString UQMTelemetryWorldSubsystem::BuildRunScopedOutputPath(const FQMTelemetrySettings& Settings) const
+FString UQMTelemetryWorldSubsystem::BuildRunScopedOutputPath(const FQMTelemetrySettings &Settings) const
 {
 	FString DirectoryPath = Settings.OutputDirectoryRelativePath;
 	if (DirectoryPath.IsEmpty())
@@ -404,8 +412,8 @@ FString UQMTelemetryWorldSubsystem::BuildRunScopedOutputPath(const FQMTelemetryS
 	}
 
 	const FString AbsoluteDirectoryPath = FPaths::IsRelative(DirectoryPath)
-		? FPaths::ConvertRelativePathToFull(FPaths::ProjectDir() / DirectoryPath)
-		: FPaths::ConvertRelativePathToFull(DirectoryPath);
+											  ? FPaths::ConvertRelativePathToFull(FPaths::ProjectDir() / DirectoryPath)
+											  : FPaths::ConvertRelativePathToFull(DirectoryPath);
 
 	FString FilePrefix = Settings.OutputFilePrefix;
 	if (FilePrefix.IsEmpty())
@@ -425,14 +433,13 @@ FString UQMTelemetryWorldSubsystem::BuildRunScopedOutputPath(const FQMTelemetryS
 
 	const FDateTime Timestamp = FDateTime::UtcNow();
 	const FString Stamp = FString::Printf(
-		TEXT("%04d%02d%02d_%02d%02d%02d_%03dZ"),
+		TEXT("%04d%02d%02d_%02d%02d%02d"),
 		Timestamp.GetYear(),
 		Timestamp.GetMonth(),
 		Timestamp.GetDay(),
 		Timestamp.GetHour(),
 		Timestamp.GetMinute(),
-		Timestamp.GetSecond(),
-		Timestamp.GetMillisecond());
+		Timestamp.GetSecond());
 
 	FString CandidatePath = FPaths::Combine(
 		AbsoluteDirectoryPath,
@@ -450,21 +457,21 @@ FString UQMTelemetryWorldSubsystem::BuildRunScopedOutputPath(const FQMTelemetryS
 	return CandidatePath;
 }
 
-UQMSettingsSubsystem* UQMTelemetryWorldSubsystem::GetSettingsSubsystem() const
+UQMSettingsSubsystem *UQMTelemetryWorldSubsystem::GetSettingsSubsystem() const
 {
-	const UWorld* World = GetWorld();
+	const UWorld *World = GetWorld();
 	if (!World)
 	{
 		return nullptr;
 	}
 
-	UGameInstance* GameInstance = World->GetGameInstance();
+	UGameInstance *GameInstance = World->GetGameInstance();
 	return GameInstance ? GameInstance->GetSubsystem<UQMSettingsSubsystem>() : nullptr;
 }
 
-void UQMTelemetryWorldSubsystem::RebuildTelemetryCaches(const FQMTelemetrySettings& Settings)
+void UQMTelemetryWorldSubsystem::RebuildTelemetryCaches(const FQMTelemetrySettings &Settings)
 {
-	UWorld* World = GetWorld();
+	UWorld *World = GetWorld();
 	if (!World)
 	{
 		return;
@@ -481,7 +488,7 @@ void UQMTelemetryWorldSubsystem::RebuildTelemetryCaches(const FQMTelemetrySettin
 	}
 }
 
-void UQMTelemetryWorldSubsystem::RegisterActorForTelemetry(AActor* Actor, const FQMTelemetrySettings& Settings)
+void UQMTelemetryWorldSubsystem::RegisterActorForTelemetry(AActor *Actor, const FQMTelemetrySettings &Settings)
 {
 	if (!Actor)
 	{
@@ -490,21 +497,21 @@ void UQMTelemetryWorldSubsystem::RegisterActorForTelemetry(AActor* Actor, const 
 
 	if (!CachedTrackedPawn.IsValid() && !Settings.PawnTag.IsNone())
 	{
-		APawn* Pawn = Cast<APawn>(Actor);
+		APawn *Pawn = Cast<APawn>(Actor);
 		if (Pawn && Pawn->Tags.Contains(Settings.PawnTag))
 		{
 			CachedTrackedPawn = Pawn;
 		}
 	}
 
-	for (const FName& TrackedTag : Settings.TrackedActorTags)
+	for (const FName &TrackedTag : Settings.TrackedActorTags)
 	{
 		if (TrackedTag.IsNone() || !Actor->Tags.Contains(TrackedTag))
 		{
 			continue;
 		}
 
-		TArray<TWeakObjectPtr<AActor>>& CachedActorsForTag = CachedTrackedActorsByTag.FindOrAdd(TrackedTag);
+		TArray<TWeakObjectPtr<AActor>> &CachedActorsForTag = CachedTrackedActorsByTag.FindOrAdd(TrackedTag);
 		CachedActorsForTag.AddUnique(Actor);
 	}
 
@@ -518,8 +525,8 @@ void UQMTelemetryWorldSubsystem::RegisterActorForTelemetry(AActor* Actor, const 
 		CachedProviderActors.AddUnique(Actor);
 	}
 
-	const TSet<UActorComponent*>& Components = Actor->GetComponents();
-	for (UActorComponent* Component : Components)
+	const TSet<UActorComponent *> &Components = Actor->GetComponents();
+	for (UActorComponent *Component : Components)
 	{
 		if (Component && Component->GetClass()->ImplementsInterface(UQMTelemetryProvider::StaticClass()))
 		{
@@ -528,7 +535,7 @@ void UQMTelemetryWorldSubsystem::RegisterActorForTelemetry(AActor* Actor, const 
 	}
 }
 
-void UQMTelemetryWorldSubsystem::HandleActorSpawned(AActor* SpawnedActor)
+void UQMTelemetryWorldSubsystem::HandleActorSpawned(AActor *SpawnedActor)
 {
 	RegisterActorForTelemetry(SpawnedActor, ActiveTelemetrySettings);
 }
@@ -537,8 +544,9 @@ void UQMTelemetryWorldSubsystem::PruneInvalidTelemetryCaches()
 {
 	for (auto It = CachedTrackedActorsByTag.CreateIterator(); It; ++It)
 	{
-		TArray<TWeakObjectPtr<AActor>>& CachedActors = It.Value();
-		CachedActors.RemoveAll([](const TWeakObjectPtr<AActor>& WeakActor) { return !WeakActor.IsValid(); });
+		TArray<TWeakObjectPtr<AActor>> &CachedActors = It.Value();
+		CachedActors.RemoveAll([](const TWeakObjectPtr<AActor> &WeakActor)
+							   { return !WeakActor.IsValid(); });
 
 		if (CachedActors.IsEmpty())
 		{
@@ -546,8 +554,10 @@ void UQMTelemetryWorldSubsystem::PruneInvalidTelemetryCaches()
 		}
 	}
 
-	CachedProviderActors.RemoveAll([](const TWeakObjectPtr<AActor>& WeakActor) { return !WeakActor.IsValid(); });
-	CachedProviderComponents.RemoveAll([](const TWeakObjectPtr<UActorComponent>& WeakComponent) { return !WeakComponent.IsValid(); });
+	CachedProviderActors.RemoveAll([](const TWeakObjectPtr<AActor> &WeakActor)
+								   { return !WeakActor.IsValid(); });
+	CachedProviderComponents.RemoveAll([](const TWeakObjectPtr<UActorComponent> &WeakComponent)
+									   { return !WeakComponent.IsValid(); });
 
 	if (!CachedTrackedPawn.IsValid())
 	{

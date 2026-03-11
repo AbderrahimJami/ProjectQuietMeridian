@@ -48,7 +48,7 @@
       {
         "TargetTag": "SpawnedAsset",
         "bSpawnIfMissing": true,
-        "ActorClassPath": "/Script/Engine.StaticMeshActor",
+        "ActorClassPath": "/Game/Training/Blueprints/SpawnableActors/BP_Test.BP_Test_C",
         "SpawnName": "SpawnedAsset_01",
         "Transform": {
           "Location": {

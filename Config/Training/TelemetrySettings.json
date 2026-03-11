@@ -2,20 +2,17 @@
   "Telemetry": {
     "SchemaVersion": 1,
     "bEnabled": true,
-    "IntervalSeconds": 0.2,
+    "IntervalSeconds": 5.0,
     "OutputRelativePath": "Saved/Telemetry/telemetry.jsonl",
     "OutputDirectoryRelativePath": "Saved/Telemetry/Runs",
     "OutputFilePrefix": "telemetry",
-    "bCreateTimestampedFilePerRun": true,
+    "bCreateTimestampedFilePerRun": false,
     "bOverwriteOnStart": true,
     "bIncludeUtcTimestamp": true,
     "bIncludeSimulationTime": true,
     "bIncludePawnVelocity": true,
     "PawnTag": "TrainingPawn",
-    "TrackedActorTags": [
-      "TrainingTarget",
-      "SpawnedAsset"
-    ],
+    "TrackedActorTags": ["TrainingTarget", "SpawnedAsset"],
     "MaxTrackedActors": 64,
     "bIncludeTelemetryProviders": true
   }
