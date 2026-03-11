@@ -40,6 +40,7 @@ private:
 	void AppendTelemetryProviders(TSharedRef<FJsonObject> RootObject) const;
 	APawn* ResolveTrackedPawn(const FQMTelemetrySettings& Settings) const;
 	FString ResolveTelemetryOutputPath(const FQMTelemetrySettings& Settings) const;
+	FString BuildRunScopedOutputPath(const FQMTelemetrySettings& Settings) const;
 	UQMSettingsSubsystem* GetSettingsSubsystem() const;
 	void RebuildTelemetryCaches(const FQMTelemetrySettings& Settings);
 	void RegisterActorForTelemetry(AActor* Actor, const FQMTelemetrySettings& Settings);

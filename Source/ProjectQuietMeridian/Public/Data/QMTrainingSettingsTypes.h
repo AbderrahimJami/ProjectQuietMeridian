@@ -154,6 +154,15 @@ struct PROJECTQUIETMERIDIAN_API FQMTelemetrySettings
 	FString OutputRelativePath = TEXT("Saved/Telemetry/telemetry.jsonl");
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Telemetry")
+	FString OutputDirectoryRelativePath = TEXT("Saved/Telemetry/Runs");
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Telemetry")
+	FString OutputFilePrefix = TEXT("telemetry");
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Telemetry")
+	bool bCreateTimestampedFilePerRun = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Telemetry")
 	bool bOverwriteOnStart = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Telemetry")

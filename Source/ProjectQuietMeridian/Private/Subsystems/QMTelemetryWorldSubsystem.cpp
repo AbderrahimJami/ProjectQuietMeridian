@@ -103,7 +103,15 @@ void UQMTelemetryWorldSubsystem::StartTelemetry()
 		return;
 	}
 
-	OutputAbsolutePath = ResolveTelemetryOutputPath(Settings);
+	if (Settings.bCreateTimestampedFilePerRun)
+	{
+		OutputAbsolutePath = BuildRunScopedOutputPath(Settings);
+	}
+	else
+	{
+		OutputAbsolutePath = ResolveTelemetryOutputPath(Settings);
+	}
+
 	if (OutputAbsolutePath.IsEmpty())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Telemetry output path is empty, cannot start telemetry logging."));
@@ -113,7 +121,7 @@ void UQMTelemetryWorldSubsystem::StartTelemetry()
 	const FString OutputDirectory = FPaths::GetPath(OutputAbsolutePath);
 	IFileManager::Get().MakeDirectory(*OutputDirectory, true);
 
-	if (Settings.bOverwriteOnStart)
+	if (!Settings.bCreateTimestampedFilePerRun && Settings.bOverwriteOnStart)
 	{
 		IFileManager::Get().Delete(*OutputAbsolutePath, false, true, true);
 	}
@@ -381,6 +389,65 @@ FString UQMTelemetryWorldSubsystem::ResolveTelemetryOutputPath(const FQMTelemetr
 	}
 
 	return FPaths::ConvertRelativePathToFull(Settings.OutputRelativePath);
+}
+
+FString UQMTelemetryWorldSubsystem::BuildRunScopedOutputPath(const FQMTelemetrySettings& Settings) const
+{
+	FString DirectoryPath = Settings.OutputDirectoryRelativePath;
+	if (DirectoryPath.IsEmpty())
+	{
+		DirectoryPath = FPaths::GetPath(Settings.OutputRelativePath);
+		if (DirectoryPath.IsEmpty())
+		{
+			DirectoryPath = TEXT("Saved/Telemetry/Runs");
+		}
+	}
+
+	const FString AbsoluteDirectoryPath = FPaths::IsRelative(DirectoryPath)
+		? FPaths::ConvertRelativePathToFull(FPaths::ProjectDir() / DirectoryPath)
+		: FPaths::ConvertRelativePathToFull(DirectoryPath);
+
+	FString FilePrefix = Settings.OutputFilePrefix;
+	if (FilePrefix.IsEmpty())
+	{
+		FilePrefix = FPaths::GetBaseFilename(Settings.OutputRelativePath);
+		if (FilePrefix.IsEmpty())
+		{
+			FilePrefix = TEXT("telemetry");
+		}
+	}
+
+	FString ExtensionWithDot = FPaths::GetExtension(Settings.OutputRelativePath, true);
+	if (ExtensionWithDot.IsEmpty())
+	{
+		ExtensionWithDot = TEXT(".jsonl");
+	}
+
+	const FDateTime Timestamp = FDateTime::UtcNow();
+	const FString Stamp = FString::Printf(
+		TEXT("%04d%02d%02d_%02d%02d%02d_%03dZ"),
+		Timestamp.GetYear(),
+		Timestamp.GetMonth(),
+		Timestamp.GetDay(),
+		Timestamp.GetHour(),
+		Timestamp.GetMinute(),
+		Timestamp.GetSecond(),
+		Timestamp.GetMillisecond());
+
+	FString CandidatePath = FPaths::Combine(
+		AbsoluteDirectoryPath,
+		FString::Printf(TEXT("%s_%s%s"), *FilePrefix, *Stamp, *ExtensionWithDot));
+
+	int32 CollisionIndex = 1;
+	while (FPaths::FileExists(CandidatePath))
+	{
+		CandidatePath = FPaths::Combine(
+			AbsoluteDirectoryPath,
+			FString::Printf(TEXT("%s_%s_%d%s"), *FilePrefix, *Stamp, CollisionIndex, *ExtensionWithDot));
+		++CollisionIndex;
+	}
+
+	return CandidatePath;
 }
 
 UQMSettingsSubsystem* UQMTelemetryWorldSubsystem::GetSettingsSubsystem() const
